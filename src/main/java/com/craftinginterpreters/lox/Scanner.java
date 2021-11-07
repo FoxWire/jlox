@@ -9,12 +9,9 @@ import static com.craftinginterpreters.lox.ScannerUtil.*;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 public class Scanner {
-    private final String source;
-    private final List<Token> tokens;
 
-    private int start;
-    private int current;
-    private int line;
+    private final List<Token> tokens;
+    private final Source source;
 
     private static final Map<String, TokenType> KEYWORDS = initKeywords();
 
@@ -39,31 +36,23 @@ public class Scanner {
         return keywords;
     }
 
-    public Scanner(String source) {
-        this.source = source;
+    public Scanner(String sourceText) {
+        source = new Source(sourceText);
         tokens = new ArrayList<>();
-
-        start = 0;
-        current = 0;
-        line = 1;
     }
 
     public List<Token> scanTokens() {
-        while (!atEndOfSource()) {
-            start = current;
+        while (!source.atEndOfSource()) {
+            source.startNewLexeme();
             scanToken();
         }
 
-        tokens.add(new Token(EOF, "", null, line));
+        tokens.add(new Token(EOF, "", null, source.getCurrentLine()));
         return tokens;
     }
 
-    private boolean atEndOfSource() {
-        return current >= source.length();
-    }
-
     private void scanToken() {
-        char c = advance();
+        char c = source.advance();
         switch (c) {
             case '(' -> addToken(LEFT_PAREN);
             case ')' -> addToken(RIGHT_PAREN);
@@ -75,13 +64,13 @@ public class Scanner {
             case '+' -> addToken(PLUS);
             case ';' -> addToken(SEMICOLON);
             case '*' -> addToken(STAR);
-            case '!' -> addToken(match('=') ? BANG_EQUAL : BANG);
-            case '=' -> addToken(match('=') ? EQUAL_EQUAL : EQUAL);
-            case '<' -> addToken(match('=') ? LESS_EQUAL : LESS);
-            case '>' -> addToken(match('=') ? GREATER_EQUAL : GREATER);
+            case '!' -> addToken(source.match('=') ? BANG_EQUAL : BANG);
+            case '=' -> addToken(source.match('=') ? EQUAL_EQUAL : EQUAL);
+            case '<' -> addToken(source.match('=') ? LESS_EQUAL : LESS);
+            case '>' -> addToken(source.match('=') ? GREATER_EQUAL : GREATER);
             case ' ', '\r', '\t' -> {
             } // Ignore whitespace
-            case '\n' -> line++;
+            case '\n' -> source.incrementLine();
             case '/' -> handleComment();
             case '"' -> string();
             default -> {
@@ -90,74 +79,66 @@ public class Scanner {
                 } else if (isAlpha(c)) {
                     identifier();
                 } else {
-                    Lox.error(line, "Unexpected character");
+                    Lox.error(source.getCurrentLine(), "Unexpected character");
                 }
             }
         }
     }
 
     private void identifier() {
-        while (isAlphaNumeric(peek()))
-            advance();
+        while (isAlphaNumeric(source.peek()))
+            source.advance();
 
-        String text = source.substring(start, current);
+        String text = source.substring();
         TokenType tokenType = KEYWORDS.getOrDefault(text, IDENTIFIER);
         addToken(tokenType);
     }
 
     private void number() {
-        while (isDigit(peek()))
-            advance();
+        while (isDigit(source.peek()))
+            source.advance();
 
-        if (peek() == '.' && isDigit(peekNext())) {
-            advance();
+        if (source.peek() == '.' && isDigit(source.peekNext())) {
+            source.advance();
 
-            while (isDigit(peek()))
-                advance();
+            while (isDigit(source.peek()))
+                source.advance();
         }
 
-        addToken(NUMBER, Double.parseDouble(source.substring(start, current)));
-    }
-
-    private char peekNext() {
-        if (current + 1 >= source.length()) return '\0';
-        return source.charAt(current + 1);
+        addToken(NUMBER, Double.parseDouble(source.substring()));
     }
 
     private void handleComment() {
-        if (!match('/')) {
+        if (!source.match('/')) {
             addToken(SLASH);
             return;
         }
 
-        while (peek() != '\n' && !atEndOfSource()) {
-            advance(); // Advance until the end of the line, ignoring commented-out code.
+        while (source.peek() != '\n' && !source.atEndOfSource()) {
+            source.advance(); // Advance until the end of the line, ignoring commented-out code.
         }
     }
 
     private void string() {
 
-        while (peek() != '"' && !atEndOfSource()) {
+        while (source.peek() != '"' && !source.atEndOfSource()) {
 
-            if (peek() == '\n') line++;
-            advance();
+            if (source.peek() == '\n') source.incrementLine();
+            source.advance();
         }
 
-        if (atEndOfSource()) {
-            Lox.error(line, "Unterminated string.");
+        if (source.atEndOfSource()) {
+            Lox.error(source.getCurrentLine(), "Unterminated string.");
             return;
         }
 
         // The closing ".
-        advance();
+        source.advance();
 
         // Trim the surrounding quotes
-        String value = source.substring(start + 1, current - 1);
+        String lexeme = source.substring();
+        String value = lexeme.substring(1, lexeme.length() - 1);
         addToken(STRING, value);
-    }
-
-    private char advance() {
-        return source.charAt(current++);
     }
 
     private void addToken(TokenType type) {
@@ -165,20 +146,7 @@ public class Scanner {
     }
 
     private void addToken(TokenType type, Object literal) {
-        String text = source.substring(start, current);
-        tokens.add(new Token(type, text, literal, line));
-    }
-
-    private boolean match(char expected) {
-        if (atEndOfSource()) return false;
-        if (source.charAt(current) != expected) return false;
-
-        current++;
-        return true;
-    }
-
-    private char peek() {
-        if (atEndOfSource()) return '\0';
-        return source.charAt(current);
+        String text = source.substring();
+        tokens.add(new Token(type, text, literal, source.getCurrentLine()));
     }
 }
