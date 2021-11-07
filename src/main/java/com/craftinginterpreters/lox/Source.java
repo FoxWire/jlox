@@ -17,6 +17,48 @@ public class Source {
         current = 0;
     }
 
+    /**
+     * .
+     * @return a char and advances the counter
+     */
+    public char read() {
+        char c = sourceText.charAt(current);
+        current++;
+        return c;
+    }
+
+    /**
+     * Checks if the next char in the source text matches the given char. If so advances
+     * the pointer and returns true, else just returns false.
+     * @param next
+     * @return
+     */
+    public boolean readIf(char next) {
+        char currentChar = sourceText.charAt(current);
+        if (currentChar == next) {
+            current++;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Takes a char sequence of some kind, runs up to the sequence and returns the sequence.
+     * This can be used for reading comments and strings, that have delimiters.
+     * @return
+     */
+    public String readTo(String s) {
+        int targetIndex = sourceText.indexOf(s);
+        String result = sourceText.substring(current, targetIndex);
+        current = targetIndex;
+        return result;
+    }
+
+    public String readTo(char c){
+        return readTo(c + "");
+    }
+
     public void startNewLexeme() {
         start = current;
     }
