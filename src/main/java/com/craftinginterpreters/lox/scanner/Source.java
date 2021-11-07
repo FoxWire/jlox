@@ -1,4 +1,4 @@
-package com.craftinginterpreters.lox;
+package com.craftinginterpreters.lox.scanner;
 
 public class Source {
 

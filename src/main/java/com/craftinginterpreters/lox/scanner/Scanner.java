@@ -1,11 +1,15 @@
-package com.craftinginterpreters.lox;
+package com.craftinginterpreters.lox.scanner;
+
+import com.craftinginterpreters.lox.Lox;
+import com.craftinginterpreters.lox.Token;
+import com.craftinginterpreters.lox.TokenType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.craftinginterpreters.lox.ScannerUtil.*;
+import static com.craftinginterpreters.lox.scanner.ScannerUtil.*;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 public class Scanner {

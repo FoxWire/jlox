@@ -1,5 +1,6 @@
 package com.craftinginterpreters.lox;
 
+import com.craftinginterpreters.lox.scanner.Scanner;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
