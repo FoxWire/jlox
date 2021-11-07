@@ -1,3 +1,4 @@
 .idea/
-untitled104.iml
+jlox.iml
 out/
+*.class

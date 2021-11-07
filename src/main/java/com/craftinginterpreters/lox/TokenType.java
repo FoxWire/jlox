@@ -1,4 +1,4 @@
-package com.company;
+package com.craftinginterpreters.lox;
 
 public enum TokenType {
 
