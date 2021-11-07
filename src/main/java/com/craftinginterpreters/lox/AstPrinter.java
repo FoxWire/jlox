@@ -1,6 +1,8 @@
 package com.craftinginterpreters.lox;
 
 
+import com.craftinginterpreters.lox.Expr;
+
 public class AstPrinter implements Expr.Visitor<String> {
 
     public String print(Expr expr){
