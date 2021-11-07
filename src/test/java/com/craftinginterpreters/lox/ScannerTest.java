@@ -33,7 +33,7 @@ class ScannerTest {
     })
     public void testLexemesCanBeUsedToRebuildSource(String source){
 
-        List<Token> tokens = new Scanner(source).scan();
+        List<Token> tokens = new Scanner(source).scanTokens();
 
         String result = tokens.stream()
                 .map(Token::lexeme)

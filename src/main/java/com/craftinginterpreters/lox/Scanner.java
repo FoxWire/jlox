@@ -1,11 +1,12 @@
-package com.company;
+package com.craftinginterpreters.lox;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.company.TokenType.*;
+import static com.craftinginterpreters.lox.ScannerUtil.*;
+import static com.craftinginterpreters.lox.TokenType.*;
 
 public class Scanner {
     private final String source;
@@ -102,20 +103,6 @@ public class Scanner {
         String text = source.substring(start, current);
         TokenType tokenType = KEYWORDS.getOrDefault(text, IDENTIFIER);
         addToken(tokenType);
-    }
-
-    private boolean isAlphaNumeric(char c) {
-        return isAlpha(c) || isDigit(c);
-    }
-
-    private boolean isAlpha(char c) {
-        return (c >= 'a' && c <= 'z')
-                || (c >= 'A' && c <= 'Z')
-                || c == '_';
-    }
-
-    private boolean isDigit(char c) {
-        return c >= '0' && c <= '9';
     }
 
     private void number() {
