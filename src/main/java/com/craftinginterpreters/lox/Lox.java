@@ -12,7 +12,9 @@ import java.util.List;
 
 public class Lox {
 
+    private static final Interpreter interpreter = new Interpreter();
     private static boolean hadError = false;
+    private static boolean hadRuntimeError;
 
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
@@ -33,6 +35,9 @@ public class Lox {
 
         if (hadError)
             System.exit(65);
+
+        if (hadRuntimeError)
+            System.exit(70);
     }
 
     private static void runPrompt() throws IOException {
@@ -51,14 +56,18 @@ public class Lox {
     private static void run(String source) {
         Scanner scanner = new Scanner(source);
         List<Token> tokens = scanner.scanTokens();
+        System.out.println(tokens);
 
         Parser parser = new Parser(tokens);
         Expr expression = parser.parse();
+        String print = new AstPrinter().print(expression);
+        System.out.println(print);
 
         // Stop if there was a syntax error.
         if (hadError) return;
 
-        System.out.println(new AstPrinter().print(expression));
+        interpreter.interpret(expression);
+
     }
 
     public static void error(int line, String message){
@@ -80,5 +89,10 @@ public class Lox {
     private static void report(int line, String where, String message) {
         System.err.println( "[line " + line + "] Error" + where + ": " + message);
         hadError = true;
+    }
+
+    public static void runtimeError(RuntimeError error) {
+        System.err.println(error.getMessage() + "\n[line " + error.getToken().line()+ "]");
+        hadRuntimeError = true;
     }
 }

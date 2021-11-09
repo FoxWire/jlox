@@ -10,17 +10,17 @@ public class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
-    public String visitBinaryExpr(Expr.Binary expr) {
+    public String visit(Expr.Binary expr) {
         return parenthesize(expr.operator.lexeme(), expr.left, expr.right);
     }
 
     @Override
-    public String visitGroupingExpr(Expr.Grouping expr) {
+    public String visit(Expr.Grouping expr) {
         return parenthesize("group", expr.expression);
     }
 
     @Override
-    public String visitLiteralExpr(Expr.Literal expr) {
+    public String visit(Expr.Literal expr) {
         if (expr.value == null)
             return "nil";
 
@@ -28,7 +28,7 @@ public class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
-    public String visitUnaryExpr(Expr.Unary expr) {
+    public String visit(Expr.Unary expr) {
         return parenthesize(expr.operator.lexeme(), expr.right);
     }
 
