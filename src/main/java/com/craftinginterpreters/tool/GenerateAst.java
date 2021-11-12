@@ -12,13 +12,25 @@ public class GenerateAst {
 
         String outputDir = (args.length > 0) ? args[0] : System.getProperty("user.dir");
 
-        List<String> ast = Arrays.asList(
+        List<String> expressions = Arrays.asList(
+                "Assign   : Token name, Expr value",
                 "Binary   : Expr left, Token operator, Expr right",
                 "Grouping : Expr expression",
                 "Literal  : Object value",
-                "Unary    : Token operator, Expr right");
+                "Logical  : Expr left, Token operator, Expr right",
+                "Unary    : Token operator, Expr right",
+                "Variable : Token name");
 
-        defineAst(outputDir, "Expr", ast);
+        List<String> statements = Arrays.asList(
+                "Block      : List<Stmt> statements",
+                "Expression : Expr expression",
+                "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
+                "Print      : Expr expression",
+                "Var        : Token name, Expr initializer",
+                "While      : Expr condition, Stmt body");
+
+        defineAst(outputDir, "Stmt", statements);
+        defineAst(outputDir, "Expr", expressions);
     }
 
     private static void defineAst(String outputDir, String baseName, List<String> types)
