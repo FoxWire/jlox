@@ -1,17 +1,34 @@
 package com.craftinginterpreters.lox;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-    private Environment environment = new Environment();
+    final Environment globals =  new Environment();
+    private Environment activeEnvironment = globals;
 
-    public void interpret(List<Stmt> statements){
+    public Interpreter() {
+        // Native function
+        globals.define("clock", new LoxCallable() {
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return (double) System.currentTimeMillis() / 1000.0;
+            }
+
+            @Override
+            public int arity() {
+                return 0;
+            }
+        });
+    }
+
+    public void interpret(List<Stmt> statements) {
         try {
             for (Stmt statement : statements) {
                 execute(statement);
             }
-        } catch (RuntimeError error){
+        } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
     }
@@ -21,10 +38,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private String stringify(Object object) {
-        if (object == null ) return "nil";
-        if (object instanceof Double){
+        if (object == null) return "nil";
+        if (object instanceof Double) {
             String text = object.toString();
-            if (text.endsWith(".0")){
+            if (text.endsWith(".0")) {
                 text = text.substring(0, text.length() - 2);
             }
             return text;
@@ -35,7 +52,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
+        activeEnvironment.assign(expr.name, value);
         return value;
     }
 
@@ -75,6 +92,30 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             default:
                 return null;
         }
+    }
+
+    @Override
+    public Object visitCallExpr(Expr.Call expr) {
+
+        Object callee = evaluate(expr.callee);
+        List<Object> arguments = new ArrayList<>();
+
+        for (Expr argument : expr.arguments) {
+            arguments.add(evaluate(argument));
+        }
+
+        if (!(callee instanceof LoxCallable function)) {
+            throw new RuntimeError(expr.paren, "Can only call functions and classes");
+        }
+
+        if (arguments.size() != function.arity()) {
+            throw new RuntimeError(expr.paren, "Expected " +
+                    function.arity() + " arguments but got " +
+                    arguments.size());
+        }
+
+
+        return function.call(this, arguments);
     }
 
     private void checkNumberOperands(Token operator, Object left, Object right) {
@@ -117,8 +158,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Object visitLogicalExpr(Expr.Logical expr) {
         Object left = evaluate(expr.left);
 
-        if (expr.operator.type() == TokenType.OR){
-           if (isTruthy(left)) return left;
+        if (expr.operator.type() == TokenType.OR) {
+            if (isTruthy(left)) return left;
         } else {
             if (!isTruthy(left)) return left;
         }
@@ -142,7 +183,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        return activeEnvironment.get(expr.name);
     }
 
     private void checkNumberOperand(Token operator, Object operand) {
@@ -159,20 +200,20 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
-        executeBlock(stmt.statements, new Environment(environment));
+        executeBlock(stmt.statements, new Environment(activeEnvironment));
         return null;
     }
 
-    private void executeBlock(List<Stmt> statements, Environment newEnvironment) {
+    public void executeBlock(List<Stmt> statements, Environment newEnvironment) {
 
-        Environment previousEnvironment = environment;
+        Environment previousEnvironment = activeEnvironment;
         try {
-            environment = newEnvironment;
+            activeEnvironment = newEnvironment;
             for (Stmt statement : statements) {
                 execute(statement);
             }
         } finally {
-            this.environment = previousEnvironment;
+            this.activeEnvironment = previousEnvironment;
         }
     }
 
@@ -183,10 +224,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitFunctionStmt(Stmt.Function stmt) {
+        LoxFunction function = new LoxFunction(stmt, activeEnvironment);
+        this.activeEnvironment.define(stmt.name.lexeme(), function);
+        return null;
+    }
+
+    @Override
     public Void visitIfStmt(Stmt.If stmt) {
-        if (isTruthy(evaluate(stmt.condition))){
+        if (isTruthy(evaluate(stmt.condition))) {
             execute(stmt.thenBranch);
-        } else if (stmt.elseBranch != null){
+        } else if (stmt.elseBranch != null) {
             execute(stmt.elseBranch);
         }
         return null;
@@ -200,19 +248,29 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+
+        Object value = null;
+        if (stmt.value != null){
+            value = evaluate(stmt.value);
+        }
+        throw new Return(value);
+    }
+
+    @Override
     public Void visitVarStmt(Stmt.Var stmt) {
 
         Object value = (stmt.initializer != null)
                 ? evaluate(stmt.initializer)
                 : null;
 
-        environment.define(stmt.name.lexeme(), value);
+        activeEnvironment.define(stmt.name.lexeme(), value);
         return null;
     }
 
     @Override
     public Void visitWhileStmt(Stmt.While stmt) {
-        while (isTruthy(evaluate(stmt.condition))){
+        while (isTruthy(evaluate(stmt.condition))) {
             execute(stmt.body);
         }
         return null;
