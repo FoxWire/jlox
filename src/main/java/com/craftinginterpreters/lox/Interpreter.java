@@ -204,6 +204,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitSuperExpr(Expr.Super expr) {
+        int distance = locals.get(expr);
+        LoxClass superClass = (LoxClass) activeEnvironment.getAt(distance, "super");
+
+        LoxInstance object = (LoxInstance) activeEnvironment.getAt(distance - 1, "this");
+
+        LoxFunction method = superClass.findMethod(expr.method.lexeme());
+
+        if (method == null){
+            throw new RuntimeError(expr.method, "Undefined property '" + expr.method.lexeme() + "'.");
+        }
+
+        return method.bind(object);
+    }
+
+    @Override
     public Object visitThisExpr(Expr.This expr) {
         return lookUpVariable(expr.keyword, expr);
     }
@@ -256,7 +272,21 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+
+        Object superclass = null;
+        if (stmt.superClass != null){
+           superclass = evaluate(stmt.superClass);
+           if (!(superclass instanceof LoxClass)){
+               throw new RuntimeError(stmt.superClass.name, "Superclass must be a class.");
+           }
+        }
+
         activeEnvironment.define(stmt.name.lexeme(), null);
+
+        if (stmt.superClass != null){
+            activeEnvironment = new Environment(activeEnvironment);
+            activeEnvironment.define("super", superclass);
+        }
 
         Map<String, LoxFunction> methods = new HashMap<>();
         for (Stmt.Function method : stmt.methods) {
@@ -264,7 +294,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             methods.put(method.name.lexeme(), function);
         }
 
-        LoxClass klass = new LoxClass(stmt.name.lexeme(), methods);
+        LoxClass klass = new LoxClass(stmt.name.lexeme(), (LoxClass) superclass, methods);
+
+        if (superclass != null){
+            activeEnvironment = activeEnvironment.enclosing;
+        }
 
         activeEnvironment.assign(stmt.name, klass);
         return null;

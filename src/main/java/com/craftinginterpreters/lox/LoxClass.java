@@ -8,10 +8,12 @@ public class LoxClass implements LoxCallable{
 
     private final String name;
     private final Map<String, LoxFunction> methods;
+    private final LoxClass superclass;
 
-    public LoxClass(String name, Map<String, LoxFunction> methods) {
+    public LoxClass(String name, LoxClass superclass, Map<String, LoxFunction> methods) {
         this.name = name;
         this.methods = methods;
+        this.superclass = superclass;
     }
 
     @Override
@@ -43,6 +45,9 @@ public class LoxClass implements LoxCallable{
     public LoxFunction findMethod(String name) {
         if (methods.containsKey(name)){
             return methods.get(name);
+        }
+        if (superclass != null){
+            return superclass.findMethod(name);
         }
         return null;
     }
