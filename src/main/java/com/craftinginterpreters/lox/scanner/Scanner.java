@@ -4,153 +4,127 @@ import com.craftinginterpreters.lox.Lox;
 import com.craftinginterpreters.lox.Token;
 import com.craftinginterpreters.lox.TokenType;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.craftinginterpreters.lox.scanner.ScannerUtil.*;
 import static com.craftinginterpreters.lox.TokenType.*;
+import static java.util.Objects.*;
 
 public class Scanner {
 
-    private final List<Token> tokens;
-    private final Source source;
+    private static Source source;
 
-    private static final Map<String, TokenType> KEYWORDS = initKeywords();
+    private Scanner() {}
 
-    private static HashMap<String, TokenType> initKeywords() {
-        HashMap<String, TokenType> keywords = new HashMap<>();
-        keywords.put("and", AND);
-        keywords.put("class", CLASS);
-        keywords.put("else", ELSE);
-        keywords.put("false", FALSE);
-        keywords.put("for", FOR);
-        keywords.put("fun", FUN);
-        keywords.put("if", IF);
-        keywords.put("nil", NIL);
-        keywords.put("or", OR);
-        keywords.put("print", PRINT);
-        keywords.put("return", RETURN);
-        keywords.put("super", SUPER);
-        keywords.put("this", THIS);
-        keywords.put("true", TRUE);
-        keywords.put("var", VAR);
-        keywords.put("while", WHILE);
-        return keywords;
-    }
-
-    public Scanner(String sourceText) {
+    public static List<Token> scanTokens(String sourceText) {
+        List<Token> tokens = new ArrayList<>();
         source = new Source(sourceText);
-        tokens = new ArrayList<>();
-    }
-
-    public List<Token> scanTokens() {
         while (!source.atEndOfSource()) {
-            source.startNewLexeme();
-            scanToken();
+            source.startLexeme();
+            char c = source.readChar();
+            Token token = scanToken(c);
+            if (nonNull(token)){
+                tokens.add(token);
+            }
         }
 
         tokens.add(new Token(EOF, "", null, source.getCurrentLine()));
         return tokens;
     }
 
-    private void scanToken() {
-        char c = source.advance();
-        switch (c) {
-            case '(' -> addToken(LEFT_PAREN);
-            case ')' -> addToken(RIGHT_PAREN);
-            case '{' -> addToken(LEFT_BRACE);
-            case '}' -> addToken(RIGHT_BRACE);
-            case ',' -> addToken(COMMA);
-            case '.' -> addToken(DOT);
-            case '-' -> addToken(MINUS);
-            case '+' -> addToken(PLUS);
-            case ';' -> addToken(SEMICOLON);
-            case '*' -> addToken(STAR);
-            case '!' -> addToken(source.match('=') ? BANG_EQUAL : BANG);
-            case '=' -> addToken(source.match('=') ? EQUAL_EQUAL : EQUAL);
-            case '<' -> addToken(source.match('=') ? LESS_EQUAL : LESS);
-            case '>' -> addToken(source.match('=') ? GREATER_EQUAL : GREATER);
-            case ' ', '\r', '\t' -> {
-            } // Ignore whitespace
-            case '\n' -> source.incrementLine();
+    private static Token scanToken(char c) {
+        return switch (c) {
+            case '(' -> createToken(LEFT_PAREN);
+            case ')' -> createToken(RIGHT_PAREN);
+            case '{' -> createToken(LEFT_BRACE);
+            case '}' -> createToken(RIGHT_BRACE);
+            case ',' -> createToken(COMMA);
+            case '.' -> createToken(DOT);
+            case '-' -> createToken(MINUS);
+            case '+' -> createToken(PLUS);
+            case ';' -> createToken(SEMICOLON);
+            case '*' -> createToken(STAR);
+            case '!' -> createToken(source.matchChar('=') ? BANG_EQUAL : BANG);
+            case '=' -> createToken(source.matchChar('=') ? EQUAL_EQUAL : EQUAL);
+            case '<' -> createToken(source.matchChar('=') ? LESS_EQUAL : LESS);
+            case '>' -> createToken(source.matchChar('=') ? GREATER_EQUAL : GREATER);
+            case ' ', '\r', '\t', '\n' -> null; // Ignore whitespace
             case '/' -> handleComment();
-            case '"' -> string();
-            default -> {
-                if (isDigit(c)) {
-                    number();
-                } else if (isAlpha(c)) {
-                    identifier();
-                } else {
-                    Lox.error(source.getCurrentLine(), "Unexpected character");
-                }
-            }
+            case '"' -> handleString();
+            default -> handleDefault(c);
+        };
+    }
+
+    private static Token handleDefault(char c) {
+        if (isDigit(c)) return handleNumber();
+        else if (isAlpha(c)) return handleIdentifier();
+        else {
+            Lox.error(source.getCurrentLine(), "Unexpected character");
+            return null;
         }
     }
 
-    private void identifier() {
+    private static Token handleIdentifier() {
         while (isAlphaNumeric(source.peek()))
-            source.advance();
+            source.readChar();
 
-        String text = source.substring();
-        TokenType tokenType = KEYWORDS.getOrDefault(text, IDENTIFIER);
-        addToken(tokenType);
+        String text = source.readLexeme();
+        TokenType tokenType = TokenType.getKeyword(text);
+        return createToken(tokenType);
     }
 
-    private void number() {
+    private static Token handleNumber() {
         while (isDigit(source.peek()))
-            source.advance();
+            source.readChar();
 
         if (source.peek() == '.' && isDigit(source.peekNext())) {
-            source.advance();
+            source.readChar();
 
             while (isDigit(source.peek()))
-                source.advance();
+                source.readChar();
         }
 
-        addToken(NUMBER, Double.parseDouble(source.substring()));
+        return createToken(NUMBER, Double.parseDouble(source.readLexeme()));
     }
 
-    private void handleComment() {
-        if (!source.match('/')) {
-            addToken(SLASH);
-            return;
+    private static Token handleComment() {
+        if (!source.matchChar('/')) {
+            return createToken(SLASH);
         }
 
         while (source.peek() != '\n' && !source.atEndOfSource()) {
-            source.advance(); // Advance until the end of the line, ignoring commented-out code.
+            source.readChar(); // Advance until the end of the line, ignoring commented-out code.
         }
+        return null;
     }
 
-    private void string() {
+    private static Token handleString() {
 
         while (source.peek() != '"' && !source.atEndOfSource()) {
 
-            if (source.peek() == '\n') source.incrementLine();
-            source.advance();
+            source.readChar();
         }
 
         if (source.atEndOfSource()) {
             Lox.error(source.getCurrentLine(), "Unterminated string.");
-            return;
+            return null;
         }
 
         // The closing ".
-        source.advance();
+        source.readChar();
 
         // Trim the surrounding quotes
-        String lexeme = source.substring();
+        String lexeme = source.readLexeme();
         String value = lexeme.substring(1, lexeme.length() - 1);
-        addToken(STRING, value);
+        return createToken(STRING, value);
     }
 
-    private void addToken(TokenType type) {
-        addToken(type, null);
+    private static Token createToken(TokenType type) {
+        return createToken(type, null);
     }
 
-    private void addToken(TokenType type, Object literal) {
-        String text = source.substring();
-        tokens.add(new Token(type, text, literal, source.getCurrentLine()));
+    private static Token createToken(TokenType type, Object literal) {
+        String text = source.readLexeme();
+        return new Token(type, text, literal, source.getCurrentLine());
     }
 }
