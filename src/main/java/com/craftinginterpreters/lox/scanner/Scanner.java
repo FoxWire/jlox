@@ -12,7 +12,6 @@ import static java.util.Objects.*;
 
 public class Scanner {
 
-
     private static Source source;
 
     private Scanner() {}
