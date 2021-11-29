@@ -68,7 +68,7 @@ class ScannerTest {
     })
     public void testLexemesCanBeUsedToRebuildSource(String source) {
 
-        List<Token> tokens = new Scanner().scanTokens(source);
+        List<Token> tokens = Scanner.scanTokens(source);
 
         String result = tokens.stream()
                 .map(Token::lexeme)
@@ -90,7 +90,7 @@ class ScannerTest {
     })
     public void testCommentsAreIgnored(String source) {
 
-        List<Token> tokens = new Scanner().scanTokens(source);
+        List<Token> tokens = Scanner.scanTokens(source);
 
         String result = tokens.stream()
                 .map(Token::lexeme)

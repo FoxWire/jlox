@@ -19,5 +19,28 @@ public enum TokenType {
     AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
     PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
 
-    EOF
+    EOF;
+
+    public static TokenType getKeyword(String key){
+
+        return switch (key) {
+            case "and" -> AND;
+            case "class" -> CLASS;
+            case "else" -> ELSE;
+            case "false" -> FALSE;
+            case "for" -> FOR;
+            case "fun" -> FUN;
+            case "if" -> IF;
+            case "nil" -> NIL;
+            case "or" -> OR;
+            case "print" -> PRINT;
+            case "return" -> RETURN;
+            case "super" -> SUPER;
+            case "this" -> THIS;
+            case "true" -> TRUE;
+            case "var" -> VAR;
+            case "while" -> WHILE;
+            default -> IDENTIFIER;
+        };
+    }
 }
