@@ -36,7 +36,7 @@ class ScannerTest {
             "fun isOdd(n) { if (n == 0) return false; return isEven(n - 1); } " +
                     "fun isEven(n) { if (n == 0) return true; return isOdd(n - 1); }",
             "class Saxophone { play() { print \"Careless Whisper\"; } } class GolfClub { play() { print \"Fore!\"; } } fun playIt(thing) { thing.play(); }",
-            "var a = 0; var temp; for (var b = 1; a < 10000; b = temp + b) { print a; temp = a; a = b;",
+            "var a = 0; var temp; for (var b = 1; a < 10000; b = temp + b) { print a; temp = a; a = b;}",
             "fun add(a, b, c) { print a + b + c; }",
             "fun count(n) { if (n > 1) count(n - 1); print n; } count(3);",
             "fun add(a, b, c) { print a + b + c; } add(1, 2, 3);",

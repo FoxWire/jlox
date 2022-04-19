@@ -1,6 +1,5 @@
 package com.craftinginterpreters.lox;
 
-import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,7 +19,9 @@ public class Parser {
     public List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(declaration());
+            Stmt declaration = declaration();
+            System.out.println(declaration);
+            statements.add(declaration);
         }
         return statements;
     }
